@@ -1,0 +1,4 @@
+
+This file only exists to see if java canRead .txt files.
+
+If it can read this but can't read my .gpx, it means it's a readability issue related to format.

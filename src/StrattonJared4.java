@@ -112,8 +112,8 @@ public class StrattonJared4 {
         catch (StringIndexOutOfBoundsException notMissingSuffix)    {
             // If exception is thrown, proceed as if normal, test for name validity
         }
-        // testing, hardcode to location of file on my computer
-        fileName = "/home/jared/Projects/cs210/StrattonJared4/out/production/StrattonJared4/Track001.gpx";
+        // testing, hardcoded file path
+        // fileName = "/home/jared/Projects/cs210/StrattonJared4/out/production/StrattonJared4/Track001.gpx";
 
         try {
             File file = new File(fileName);
@@ -123,7 +123,7 @@ public class StrattonJared4 {
                 fileContents = fileName + "SPLITMARK" + fileContents;
                 return fileContents;
             }   else    {
-                System.out.printf("\tError: file is not gpx format\n");
+                System.out.printf("\tError: File is not gpx format\n");
                 return "";
             }
         }
@@ -214,7 +214,6 @@ public class StrattonJared4 {
         int i = 0;
         while ((lons[i + 1] != 0.0 && lats[i + 1] != 0.0) && (i < (lons.length - 1)))   {
             double intervalDistance = 0;
-
             intervalDistance = coordinateDistance(lons[i],lats[i],lons[i+1],lats[i+1]);
             // testing
             // System.out.printf("point at i: \t\t\tlongitude\t" + lons[i] + "\tlatitude\t" + lats[i] + "\n");
@@ -388,7 +387,5 @@ public class StrattonJared4 {
             return In;
         }
     }   // end of Cher
-
-
 
 } // end of class

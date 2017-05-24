@@ -1,6 +1,7 @@
 /**
  * Created by jared stratton on 5/18/17.
  * As per example run meters are rounded to two decimals and kilometers to three decimals
+ * Caution: System is not robust, XML parser desired but outside scope of assignment
  */
 
 import java.io.*;
@@ -8,6 +9,8 @@ import java.util.*;
 
 public class StrattonJared4 {
     public static final int MAX_TRACKPOINTS = 10000;
+    public static final double EARTH_RADIUS = 6372.795;
+
 
     public static void main(String args[]) throws FileNotFoundException {
         boolean gpxRunning = true;
@@ -25,15 +28,12 @@ public class StrattonJared4 {
             String selection;
             String dataIn;
 
-
             mainMenu(fileLoaded);
             selection = mainConsole.next().substring(0,1);
 
             if (selection.equals("1"))  {
                 // validates gpx file, pulls contents into String, returns String
                 dataIn = fileReader();
-
-
                 // modify nothing if fileReader indicates file read failure with ""
                 // if dataIn isn't "" it means a file was successfully read in
                 if (!dataIn.equals(""))  {
@@ -55,19 +55,20 @@ public class StrattonJared4 {
                     lats = doubleSort(dataIn,"lats");
                     elevs = doubleSort(dataIn,"elevs");
                     times = stringSort(dataIn);
-                    System.out.println("lons" + Arrays.toString(lons));
-                    System.out.println("lats" + Arrays.toString(lats));
-                    System.out.println("elevs" + Arrays.toString(elevs));
-                    System.out.println("times" + Arrays.toString(times));
+                    // testing
+                    // System.out.println("lons" + Arrays.toString(lons));
+                    // System.out.println("lats" + Arrays.toString(lats));
+                    // System.out.println("elevs" + Arrays.toString(elevs));
+                    // System.out.println("times" + Arrays.toString(times));
                 }
             }   else if (selection.equals("2") && (!fileLoaded.equals(""))){
-                distanceSelection();
+                distanceSelection(lons,lats);
             }   else if (selection.equals("3") && (!fileLoaded.equals(""))){
                 gainLossSelection(elevs);
             }   else if (selection.equals("4") && (!fileLoaded.equals(""))){
                 lowHighSelection(elevs);
             }   else if (selection.equals("5") && (!fileLoaded.equals(""))){
-                speedTableSelection();
+                speedTableSelection(lons,lats,times);
             }   else if (selection.equals("0")) {
                 gpxRunning = false;
             }   else    {
@@ -111,18 +112,18 @@ public class StrattonJared4 {
         catch (StringIndexOutOfBoundsException notMissingSuffix)    {
             // If exception is thrown, proceed as if normal, test for name validity
         }
-        // TODO FIX PATH -- DELETE THIS CODE, LET FILENAME CONTINUE FROM ABOVE
-        fileName = "/home/jared/Projects/cs210/StrattonJared4/out/production/StrattonJared4/Track002.gpx";
+        // testing, hardcode to location of file on my computer
+        fileName = "/home/jared/Projects/cs210/StrattonJared4/out/production/StrattonJared4/Track001.gpx";
+
         try {
             File file = new File(fileName);
             Scanner fileScanner = new Scanner(file);
             String fileContents = fileScanner.useDelimiter("\\A").next();
             if (fileContents.indexOf("<?xml version=\"1.0\"?><gpx version=\"1.1\"") > -1)   {
                 fileContents = fileName + "SPLITMARK" + fileContents;
-                //System.out.println("string with splitmark test" + fileContents);
                 return fileContents;
             }   else    {
-                System.out.println("Error: file is not gpx format");
+                System.out.printf("\tError: file is not gpx format\n");
                 return "";
             }
         }
@@ -208,37 +209,42 @@ public class StrattonJared4 {
     }   // end of stringSort
 
 
-    public static void distanceSelection()  {
-        System.out.printf("\tBehold My Distance Selection!\n");
+    public static void distanceSelection(double[] lons, double[] lats)  {
+        double totalDistance = 0.0;
+        int i = 0;
+        while ((lons[i + 1] != 0.0 && lats[i + 1] != 0.0) && (i < (lons.length - 1)))   {
+            double intervalDistance = 0;
+
+            intervalDistance = coordinateDistance(lons[i],lats[i],lons[i+1],lats[i+1]);
+            // testing
+            // System.out.printf("point at i: \t\t\tlongitude\t" + lons[i] + "\tlatitude\t" + lats[i] + "\n");
+            // System.out.printf("point at i + 1: \t\tlongitude\t" + lons[i] + "\tlatitude\t" + lats[i] + "\n");
+            // System.out.printf("Interval distance:\t\t\t\t" + intervalDistance + "\n");
+            totalDistance = totalDistance + intervalDistance;
+            i = i + 1;
+        }
+        System.out.printf("\tTotal distance travelled is " + kmRound(totalDistance) + " kilometers.\n");
     }
 
 
     public static void gainLossSelection(double[] elevs)  {
-        double elevation = elevs[0];
         double gained = 0.0;
         double lost = 0.0;
-        double difference;
-        int index = 1;
-        while ((index < 10000) && (elevs[index] != 0.0))     {
-            if (elevs[index] > elevation)   {
-                difference = elevs[index] - elevation;
-                gained = gained + difference;
-            }   else if (elevs[index] < elevation)  {
-                difference = elevation - elevs[index];
-                lost = lost + difference;
+        for (int i = 0; (i < (elevs.length - 1)) && (elevs[i + 1] != 0.0); i ++)    {
+            // uphill
+            if (elevs[i + 1] > elevs[i])    {
+                gained = gained + (elevs[i + 1] - elevs[i]);
+            // downhill
+            }   else if (elevs[i + 1] < elevs[i])   {
+                lost = lost + (elevs[i] - elevs[i + 1]);
             }
-            index = index + 1;
-            elevation = elevs[index];
         }
-        System.out.printf("\tTotal elevation gained is " + meterRound(gained) + " meters.\n");
-        System.out.printf("\tTotal elevation lost is " + meterRound(lost) + " meters.\n");
-
+        System.out.printf("\tTotal elevation gained is " + mRound(gained)+ " meters.\n");
+        System.out.printf("\tTotal elevation lost is " + mRound(lost) + " meters.\n");
     }   // end of gainLossSelection
 
 
     public static void lowHighSelection(double[] elevs)   {
-        System.out.printf("\tBehold My Elevation High And Low Selection!\n");
-        double elevation = elevs[0];
         double max = elevs[0];
         double min = elevs[0];
         int index = 1;
@@ -251,25 +257,138 @@ public class StrattonJared4 {
             }
             index = index + 1;
         }
-        System.out.printf("\tMaximum elevation reached is " + meterRound(max) + " meters.\n");
-        System.out.printf("\tMinimum elevation reached is " + meterRound(min) + " meters.\n");
+        System.out.printf("\tMaximum elevation reached is " + mRound(max) + " meters.\n");
+        System.out.printf("\tMinimum elevation reached is " + mRound(min) + " meters.\n");
     }   // end of lowHighSelection
 
 
-    public static void speedTableSelection()    {
-        System.out.printf("\tBehold My Speed Table!\n");
-        int fourthMaxTrackpoints = MAX_TRACKPOINTS / 4;
-        double[] speedTableSpeeds = new double[fourthMaxTrackpoints];
-        String[] speedTableTimes = new String[fourthMaxTrackpoints];
-    }
+    public static void speedTableSelection(double[] lons,double[] lats,String[] times)    {
+        System.out.printf("\t\tSPEED TABLE\n");
+        System.out.printf("\t\t(km / h)\tTime\n");
+        System.out.printf("\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+        int i = 0;
+
+        while (i < times.length - 3) {
+            double i0lon = lons[i];
+            double i0lat = lats[i];
+            String i0time = times[i];
+            double i1lon = lons[i + 1];
+            double i1lat = lats[i + 1];
+            String i1time = times[i + 1];
+            double i2lon = lons[i + 2];
+            double i2lat = lats[i + 2];
+            String i2time = times[i + 2];
+            double i3lon = lons[i + 3];
+            double i3lat = lats[i + 3];
+            String i3time = times[i + 3];
+            double distance0to1 = coordinateDistance(i0lon,i0lat,i1lon,i1lat);
+            double distance1to2 = coordinateDistance(i1lon,i1lat,i2lon,i2lat);
+            double distance2to3 = coordinateDistance(i2lon,i2lat,i3lon,i3lat);
+
+            // trim Strings to just the HH:MM:SS format
+            i0time = i0time.substring(11, i0time.length() - 1);
+            i1time = i1time.substring(11, i1time.length() - 1);
+            i2time = i2time.substring(11, i2time.length() - 1);
+            i3time = i3time.substring(11, i3time.length() - 1);
+
+            int i0seconds = secondsCalculated(i0time);
+            int i1seconds = secondsCalculated(i1time);
+            int i2seconds = secondsCalculated(i2time);
+            int i3seconds = secondsCalculated(i3time);
+
+            // implemented Mat.max after two trackpoints had zero seconds between them
+            // less accurate but I can't divide by zero
+            int time0to1 = Math.max(1, i1seconds - i0seconds);
+            int time1to2 = Math.max(1, i2seconds - i1seconds);
+            int time2to3 = Math.max(1, i3seconds - i2seconds);
+
+            double speed0to1 = distance0to1 * (3600 / time0to1);
+            double speed1to2 = distance1to2 * (3600 / time1to2);
+            double speed2to3 = distance2to3 * (3600 / time2to3);
+
+            double averageSpeed = (speed0to1 + speed1to2 + speed2to3) / 3;
+
+            System.out.printf("\t\t" + mRound(averageSpeed) + "\t\t" + Cher(i3time) + "\n");
+
+            // iterate
+            i = i + 4;
+            // preempt null pointer exception error (early exit checker)
+            try {
+                String nullTest = times[i + 3];
+                if (nullTest.equals(null)) {
+                    return;
+                }
+            } catch (NullPointerException badNullTest) {
+                return;
+            }
+        }   // end of while loop
+    }   // end of SpeedTableSelection
 
 
-    public static double meterRound(double In)  {
+    public static double mRound(double In)  {
         In = In * 100;
         In = Math.round(In);
         In = In / 100;
         return In;
     }
+
+
+    public static double kmRound(double In)  {
+        In = In * 1000;
+        In = Math.round(In);
+        In = In / 1000;
+        return In;
+    }
+
+    public static double coordinateDistance(double Lon1,double Lat1,double Lon2,double Lat2) {
+        double LatDiff = Math.toRadians(Lat1 - Lat2);
+        double LongDiff = Math.toRadians(Lon1 - Lon2);
+        double theA =
+                Math.sin(LatDiff / 2) *
+                Math.sin(LatDiff / 2) +
+                Math.cos(Math.toRadians(Lat1)) *
+                Math.cos(Math.toRadians(Lat2)) *
+                Math.sin(LongDiff / 2) *
+                Math.sin(LongDiff / 2);
+        double theC = 2 * Math.atan2(Math.sqrt(theA), Math.sqrt(1 - theA));
+        // theC must be equal to DeltaSigma in the book's description
+        double Answer = EARTH_RADIUS * theC;
+
+        return Answer;
+    }   // end of coordinateDistance
+
+
+    public static int secondsCalculated(String timeIn)  {
+        int totalSeconds = 0;
+
+        String[] timeChunks = new String[3];
+        timeChunks = timeIn.split(":");
+        totalSeconds = (Integer.parseInt(timeChunks[0]) * 60 * 60)
+                        + (Integer.parseInt(timeChunks[1]) * 60)
+                            + (Integer.parseInt(timeChunks[2]));
+        return totalSeconds;
+    }
+
+
+    public static String Cher(String In)    {
+        if (In.length() == 8)   {
+            // HH:MM:SS
+            int firstTwo = Integer.parseInt(In.substring(0,2));
+            firstTwo = firstTwo - 7;
+            In = Integer.toString(firstTwo) + In.substring(2,8);
+            return In;
+        }   else    {
+            // H:MM:SS
+            int justOne = Integer.parseInt(In.substring(0,1));
+            justOne = justOne - 7;
+            if (justOne < 0)    {
+                justOne = 24 - Math.abs(justOne);
+            }
+            In = Integer.toString(justOne) + In.substring(1,7);
+            return In;
+        }
+    }   // end of Cher
+
 
 
 } // end of class
